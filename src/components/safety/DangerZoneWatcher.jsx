@@ -19,7 +19,7 @@ import { DangerZoneBanner } from "./DangerZoneBanner";
  * Fires once per zone entry — re-entering after leaving warns again, but
  * standing inside one doesn't re-warn on every position update.
  */
-export function DangerZoneWatcher() {
+export function DangerZoneWatcher({ isAuthenticated = true }) {
   const [activeZone, setActiveZone] = useState(null);
   const [dismissedZoneId, setDismissedZoneId] = useState(null);
 
@@ -72,9 +72,13 @@ export function DangerZoneWatcher() {
   const visibleZone =
     activeZone && activeZone.id !== dismissedZoneId ? activeZone : null;
 
+  /* Dismissal is component state only, never persisted — a reload puts the
+     warning back, because the danger hasn't gone away just because it was
+     closed once. */
   return (
     <DangerZoneBanner
       zone={visibleZone}
+      isAuthenticated={isAuthenticated}
       onDismiss={() => setDismissedZoneId(activeZone?.id ?? null)}
     />
   );

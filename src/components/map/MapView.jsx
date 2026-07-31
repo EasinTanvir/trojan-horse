@@ -28,6 +28,9 @@ export function MapView({
   center = DEFAULT_CENTER,
   zoom = 12,
   showLegend = true,
+  isAuthenticated = false,
+  pendingVoteId = null,
+  onVote,
   onSelectReport,
   className,
 }) {
@@ -59,6 +62,9 @@ export function MapView({
         center={center}
         zoom={zoom}
         focusStatus={focusStatus}
+        isAuthenticated={isAuthenticated}
+        pendingVoteId={pendingVoteId}
+        onVote={onVote}
         onSelectReport={onSelectReport}
       />
 

@@ -1,8 +1,11 @@
 "use client";
 
 import L from "leaflet";
+import Link from "next/link";
 import { Marker, Popup } from "react-leaflet";
 import { StatusBadge } from "@/components/reports/StatusBadge";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { IconCheckCircle } from "@/components/ui/icons";
 import {
   formatCoords,
   formatRelative,
@@ -62,7 +65,14 @@ export function createMarkerIcon({ type, status, active = false }) {
   return icon;
 }
 
-export function HotspotMarker({ report, active = false, onSelect }) {
+export function HotspotMarker({
+  report,
+  active = false,
+  isAuthenticated = false,
+  votePending = false,
+  onVote,
+  onSelect,
+}) {
   const typeMeta = getTypeMeta(report.type);
 
   return (
@@ -78,13 +88,34 @@ export function HotspotMarker({ report, active = false, onSelect }) {
       eventHandlers={onSelect ? { click: () => onSelect(report) } : undefined}
     >
       <Popup>
-        <div className="flex w-56 flex-col gap-2">
+        <div className="flex w-60 flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
             <p className="font-display text-sm font-semibold text-ink">
               {typeMeta.label}
             </p>
             <StatusBadge status={report.status} size="sm" />
           </div>
+
+          {report.photoUrl ? (
+            <a
+              href={report.photoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-md border border-border-subtle"
+              aria-label="Open the full-size photo"
+            >
+              {/* Plain <img>: this renders inside a Leaflet popup, outside
+                  React's normal layout flow, where next/image's sizing wrapper
+                  fights the popup's auto-width. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={report.photoUrl}
+                alt=""
+                loading="lazy"
+                className="h-28 w-full object-cover"
+              />
+            </a>
+          ) : null}
 
           <p className="text-xs leading-relaxed text-ink-muted">
             {report.description.length > 120
@@ -112,6 +143,32 @@ export function HotspotMarker({ report, active = false, onSelect }) {
               <dd className="font-mono text-ink">{report.votes ?? 0}</dd>
             </div>
           </dl>
+
+          {/* Anyone signed in can confirm anyone's report — one vote per
+              person per report, enforced by a unique index. */}
+          {isAuthenticated ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              fullWidth
+              loading={votePending}
+              onClick={() => onVote?.(report.id)}
+            >
+              <IconCheckCircle className="size-4" />
+              Confirm this
+            </Button>
+          ) : (
+            <Link
+              href="/login"
+              className={buttonClasses({
+                variant: "secondary",
+                size: "sm",
+                fullWidth: true,
+              })}
+            >
+              Sign in to confirm
+            </Link>
+          )}
         </div>
       </Popup>
     </Marker>

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { buttonClasses } from "@/components/ui/Button";
 import { IconAlertTriangle, IconX } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 
@@ -12,8 +14,53 @@ import { cn } from "@/lib/cn";
  *
  * Driven by DangerZoneWatcher's geolocation subscription.
  */
-export function DangerZoneBanner({ zone, onDismiss, className }) {
+export function DangerZoneBanner({
+  zone,
+  isAuthenticated = true,
+  onDismiss,
+  className,
+}) {
   if (!zone) return null;
+
+  /* Signed out: warn, but keep the detail behind the login rather than
+     publishing exactly how many incidents happened where to anyone. */
+  if (!isAuthenticated) {
+    return (
+      <div
+        role="alert"
+        className={cn(
+          "border-b border-danger/30 bg-danger-soft animate-toast-in",
+          className,
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+          <IconAlertTriangle className="size-5 shrink-0 text-danger" />
+
+          <p className="min-w-0 flex-1 text-sm font-semibold text-danger">
+            You are near a reported danger zone
+          </p>
+
+          <Link
+            href="/login"
+            className={buttonClasses({ variant: "danger", size: "sm" })}
+          >
+            Log in to learn more
+          </Link>
+
+          {onDismiss ? (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Dismiss danger zone warning"
+              className="focus-ring-danger shrink-0 rounded-md p-1 text-danger transition-colors hover:bg-danger/10"
+            >
+              <IconX className="size-4" />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

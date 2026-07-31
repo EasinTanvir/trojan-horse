@@ -23,7 +23,11 @@ export default function UserMapPage() {
       />
 
       <div className="p-4 sm:p-6">
-        <LiveMapSection heightClass="h-[60svh] min-h-96 lg:h-[calc(100svh-19rem)]" />
+        {/* Always signed in here — this route sits behind requireRole. */}
+        <LiveMapSection
+          heightClass="h-[60svh] min-h-96 lg:h-[calc(100svh-19rem)]"
+          isAuthenticated
+        />
       </div>
     </>
   );

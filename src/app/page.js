@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LiveMapSection } from "@/components/map/LiveMapSection";
+import { DangerZoneWatcher } from "@/components/safety/DangerZoneWatcher";
 import { buttonClasses } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import {
@@ -39,6 +40,10 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-svh flex-col bg-surface-alt">
+      {/* Warns visitors too, not just the citizen panel. Signed out, it shows
+          the warning without the detail and offers a login. */}
+      <DangerZoneWatcher isAuthenticated={Boolean(session)} />
+
       <header className="border-b border-border-subtle bg-surface">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 sm:px-6">
           <IconShieldCheck className="size-5 text-brand-primary" />
@@ -113,7 +118,10 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <LiveMapSection heightClass="h-[55svh] min-h-80 sm:min-h-96" />
+          <LiveMapSection
+            heightClass="h-[55svh] min-h-80 sm:min-h-96"
+            isAuthenticated={Boolean(session)}
+          />
         </section>
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">

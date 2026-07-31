@@ -24,6 +24,9 @@ export default function LeafletMap({
   center,
   zoom = 12,
   focusStatus = null,
+  isAuthenticated = false,
+  pendingVoteId = null,
+  onVote,
   onSelectReport,
 }) {
   /* Fit to the focused status when one is chosen, otherwise to everything.
@@ -90,6 +93,9 @@ export default function LeafletMap({
           key={report.id}
           report={report}
           active={focusStatus ? report.status === focusStatus : false}
+          isAuthenticated={isAuthenticated}
+          votePending={pendingVoteId === report.id}
+          onVote={onVote}
           onSelect={onSelectReport}
         />
       ))}

@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { MapView } from "./MapView";
+import { castVote } from "@/actions/votes";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useReports } from "@/hooks/useReports";
 import { buildDangerZones } from "@/lib/geolocation";
+import { notifyError, notifySuccess } from "@/lib/toast";
 
 /**
  * The live map plus its controls, shared by the public home page and the
@@ -18,15 +20,34 @@ import { buildDangerZones } from "@/lib/geolocation";
 export function LiveMapSection({
   heightClass = "h-[60svh] min-h-96",
   showControls = true,
+  isAuthenticated = false,
   className,
 }) {
   const [hideSettled, setHideSettled] = useState(false);
   const [showZones, setShowZones] = useState(true);
+  const [pendingVoteId, setPendingVoteId] = useState(null);
 
   const { reports, loading, refresh } = useReports({
     scope: "all",
     pageSize: 100,
   });
+
+  /* Anyone signed in can confirm anyone's report, not just their own — the
+     unique index keeps it to one vote per person per report. */
+  async function handleVote(reportId) {
+    setPendingVoteId(reportId);
+    try {
+      const result = await castVote({ reportId });
+      if (result.success) {
+        notifySuccess("Confirmation recorded.");
+        refresh();
+      } else {
+        notifyError(result.error);
+      }
+    } finally {
+      setPendingVoteId(null);
+    }
+  }
 
   const visibleReports = useMemo(
     () =>
@@ -77,6 +98,9 @@ export function LiveMapSection({
       <MapView
         reports={visibleReports}
         dangerZones={showZones ? dangerZones : []}
+        isAuthenticated={isAuthenticated}
+        pendingVoteId={pendingVoteId}
+        onVote={handleVote}
         className={heightClass}
       />
     </div>

@@ -41,10 +41,8 @@ export function PanelHeader({
           <IconMenu className="size-5" />
         </button>
 
-        <Link
-          href={meta.home.includes("[") ? "#" : meta.home}
-          className="flex min-w-0 items-center gap-2 rounded-md"
-        >
+        {/* Always the public home page, for every role. */}
+        <Link href="/" className="flex min-w-0 items-center gap-2 rounded-md">
           <IconShieldCheck className="size-5 shrink-0 text-white" />
           <span className="font-display text-base font-semibold whitespace-nowrap text-white">
             Nirapod Path
