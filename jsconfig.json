@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "paths": {
+      "@/db": ["./db/index.js"],
+      "@/db/*": ["./db/*"],
       "@/*": ["./src/*"]
     }
   }
