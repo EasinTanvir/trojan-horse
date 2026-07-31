@@ -1,4 +1,5 @@
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { TranslateBar } from "@/components/layout/TranslateBar";
 import { ToasterMount } from "@/components/ui/ToasterMount";
 import "./globals.css";
 
@@ -35,6 +36,7 @@ export default function RootLayout({ children }) {
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-surface-alt text-ink">
+        <TranslateBar />
         {children}
         <ToasterMount />
       </body>

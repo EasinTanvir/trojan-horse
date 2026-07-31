@@ -207,3 +207,24 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* --- Google website translate widget ------------------------------------
+   The widget injects a toolbar iframe and pushes <body> down with an inline
+   `top`. We render our own bar instead, so suppress its chrome and undo the
+   offset. `.notranslate` marks the few strings that must stay as written —
+   our own language controls, which would otherwise translate themselves into
+   nonsense. */
+.skiptranslate,
+.goog-te-banner-frame,
+.goog-te-gadget-icon {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
