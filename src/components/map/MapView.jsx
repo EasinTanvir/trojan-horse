@@ -30,10 +30,8 @@ export function MapView({
   showLegend = true,
   isAuthenticated = false,
   pendingVoteId = null,
-  routePendingId = null,
   route = null,
   onVote,
-  onShowRoute,
   onClearRoute,
   onSelectReport,
   className,
@@ -68,10 +66,8 @@ export function MapView({
         focusStatus={focusStatus}
         isAuthenticated={isAuthenticated}
         pendingVoteId={pendingVoteId}
-        routePendingId={routePendingId}
         route={route}
         onVote={onVote}
-        onShowRoute={onShowRoute}
         onSelectReport={onSelectReport}
       />
 

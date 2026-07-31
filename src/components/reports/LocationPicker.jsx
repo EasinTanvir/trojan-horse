@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { IconAlertTriangle, IconMapPin, IconSpinner } from "@/components/ui/icons";
+import {
+  IconAlertTriangle,
+  IconMapPin,
+  IconSpinner,
+} from "@/components/ui/icons";
 import { api } from "@/lib/axios";
 import { cn } from "@/lib/cn";
 import { isInsideRegion } from "@/lib/city-corp-regions";
@@ -40,7 +44,10 @@ export function LocationPicker({ lat, lng, label, region, error, onChange }) {
   const regionName = region?.name ?? "the selected City Corporation";
 
   /** Single gate every input path goes through. */
-  function accept({ lat: nextLat, lng: nextLng, label: nextLabel }, { auto = false } = {}) {
+  function accept(
+    { lat: nextLat, lng: nextLng, label: nextLabel },
+    { auto = false } = {},
+  ) {
     const point = { lat: Number(nextLat), lng: Number(nextLng) };
 
     if (!isInsideRegion(point, region)) {
@@ -214,7 +221,7 @@ export function LocationPicker({ lat, lng, label, region, error, onChange }) {
             ) : null}
 
             {results.length > 0 ? (
-              <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border-subtle bg-surface shadow-elevated">
+              <ul className="absolute z-[99999] mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border-subtle bg-surface shadow-elevated">
                 {results.map((result) => (
                   <li key={result.id}>
                     <button

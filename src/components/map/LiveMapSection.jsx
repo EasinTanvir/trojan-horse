@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { MapView } from "./MapView";
 import { castVote } from "@/actions/votes";
+import { SafeRouteDialog } from "./SafeRouteDialog";
+import { IconRoute } from "@/components/ui/icons";
 import { api } from "@/lib/axios";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -27,56 +29,44 @@ export function LiveMapSection({
   const [hideSettled, setHideSettled] = useState(false);
   const [showZones, setShowZones] = useState(true);
   const [pendingVoteId, setPendingVoteId] = useState(null);
-  const [routePendingId, setRoutePendingId] = useState(null);
   const [route, setRoute] = useState(null);
+  const [routeOpen, setRouteOpen] = useState(false);
+  const [routeLoading, setRouteLoading] = useState(false);
 
   /**
-   * Walking route from where the viewer is standing to the selected report,
-   * steered around reported hotspots where possible. Needs a live GPS fix —
-   * there is no sensible "from" without one.
+   * Route between two chosen points, steered around reported danger zones.
+   * The heavy lifting is server-side in /api/safe-route.
    */
-  async function handleShowRoute(report) {
-    if (!navigator.geolocation) {
-      notifyError("This browser can't share your location, so no route.");
-      return;
-    }
-
-    setRoutePendingId(report.id);
+  async function findRoute({ from, to }) {
+    setRouteLoading(true);
     try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 30000,
-        });
-      });
-
       const response = await api.get("/safe-route", {
         params: {
-          fromLat: position.coords.latitude,
-          fromLng: position.coords.longitude,
-          toLat: report.lat,
-          toLng: report.lng,
+          fromLat: from.lat,
+          fromLng: from.lng,
+          toLat: to.lat,
+          toLng: to.lng,
         },
       });
 
       const data = response.data.data;
       setRoute(data);
-      notifySuccess(
-        data.avoided
-          ? "Route found, clear of reported danger zones."
-          : "Route found, but it still passes a reported zone.",
-      );
+      setRouteOpen(false);
+
+      if (data.avoided) {
+        notifySuccess("Route found, clear of every reported danger zone.");
+      } else {
+        notifyError(
+          `No fully clear route exists — this one still passes ${data.blockedZones} reported zone${data.blockedZones === 1 ? "" : "s"}. Take care.`,
+        );
+      }
     } catch (error) {
       setRoute(null);
       notifyError(
-        error?.readableMessage ??
-          (error?.code === 1
-            ? "Location access was blocked, so no route could be worked out."
-            : "Couldn't work out a route right now."),
+        error?.readableMessage ?? "Couldn't work out a route right now.",
       );
     } finally {
-      setRoutePendingId(null);
+      setRouteLoading(false);
     }
   }
 
@@ -135,16 +125,26 @@ export function LiveMapSection({
                 }`}
           </p>
 
-          <button
-            type="button"
-            onClick={() => refresh()}
-            className={cn(
-              buttonClasses({ variant: "secondary", size: "sm" }),
-              "ml-auto",
-            )}
-          >
-            Refresh
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => setRouteOpen(true)}
+                className={buttonClasses({ size: "sm" })}
+              >
+                <IconRoute className="size-4" />
+                Safe route
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => refresh()}
+              className={buttonClasses({ variant: "secondary", size: "sm" })}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -153,12 +153,17 @@ export function LiveMapSection({
         dangerZones={showZones ? dangerZones : []}
         isAuthenticated={isAuthenticated}
         pendingVoteId={pendingVoteId}
-        routePendingId={routePendingId}
         route={route}
         onVote={handleVote}
-        onShowRoute={handleShowRoute}
         onClearRoute={() => setRoute(null)}
         className={heightClass}
+      />
+
+      <SafeRouteDialog
+        open={routeOpen}
+        loading={routeLoading}
+        onClose={() => setRouteOpen(false)}
+        onSubmit={findRoute}
       />
     </div>
   );

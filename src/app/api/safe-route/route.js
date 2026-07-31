@@ -79,9 +79,9 @@ export async function GET(request) {
     const zones = buildDangerZones(rows);
 
     const direct = await fetchRoute([origin, destination]);
-    const blocking = zonesOnPath(direct.path, zones);
+    let best = { route: direct, blocked: zonesOnPath(direct.path, zones) };
 
-    if (blocking.length === 0) {
+    if (best.blocked.length === 0) {
       return Response.json({
         success: true,
         error: null,
@@ -89,25 +89,42 @@ export async function GET(request) {
       });
     }
 
-    /* Steer around the zone that sits worst across the path. */
-    const waypoint = detourWaypointFor(blocking[0], origin, destination);
-    const detour = await fetchRoute([origin, waypoint, destination]);
-    const stillBlocked = zonesOnPath(detour.path, zones);
+    /* Add one detour waypoint per blocking zone, up to three, keeping whichever
+       attempt clears the most zones. Each extra waypoint costs another OSRM
+       call, so this is capped rather than exhaustive. */
+    const waypoints = [];
+    for (const zone of best.blocked.slice(0, 3)) {
+      waypoints.push(detourWaypointFor(zone, origin, destination));
 
-    /* If the detour is worse or no cleaner, keep the direct line. */
-    const useDetour =
-      stillBlocked.length < blocking.length && detour.distance < direct.distance * 3;
+      let attempt;
+      try {
+        attempt = await fetchRoute([origin, ...waypoints, destination]);
+      } catch {
+        /* A waypoint can land somewhere unroutable (water, a closed area) —
+           keep the best result so far rather than failing the request. */
+        break;
+      }
 
-    const chosen = useDetour ? detour : direct;
-    const remaining = useDetour ? stillBlocked : blocking;
+      const blocked = zonesOnPath(attempt.path, zones);
+
+      /* Reject wild detours: a "safe" route three times as long is not one
+         anybody will actually walk. */
+      if (attempt.distance > direct.distance * 3) break;
+
+      if (blocked.length < best.blocked.length) {
+        best = { route: attempt, blocked, detoured: true };
+      }
+      if (blocked.length === 0) break;
+    }
 
     return Response.json({
       success: true,
       error: null,
       data: {
-        ...chosen,
-        detoured: useDetour,
-        avoided: remaining.length === 0,
+        ...best.route,
+        detoured: Boolean(best.detoured),
+        avoided: best.blocked.length === 0,
+        blockedZones: best.blocked.length,
         zones: zones.length,
       },
     });
