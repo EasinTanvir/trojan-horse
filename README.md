@@ -311,3 +311,10 @@ npm run dev
 ---
 
 _Built for [Hackathon Name] — Problem Statement 2: Community-Driven Public Safety Platform._
+
+Dhaka North management-dhaka-north@example.com Management#2026
+Dhaka South management-dhaka-south@example.com Management#2026
+City Corporation panel
+City Corporation Email Password
+Dhaka North citycorp-dhaka-north@example.com CityCorp#2026
+Dhaka South citycorp-dhaka-south@example.com CityCorp#2026

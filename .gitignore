@@ -42,3 +42,5 @@ next-env.d.ts
 AGENTS.md
 CLAUDE.md
 contexts
+# ...but the template (variable names only, no values) is shared
+!.env.example
