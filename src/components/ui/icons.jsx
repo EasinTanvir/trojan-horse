@@ -132,6 +132,16 @@ export function IconMapPin(props) {
   );
 }
 
+export function IconRoute(props) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="6" cy="18.5" r="2.5" />
+      <circle cx="18" cy="5.5" r="2.5" />
+      <path d="M15.5 5.5H10a3.5 3.5 0 0 0 0 7h4a3.5 3.5 0 0 1 0 7H8.5" />
+    </BaseIcon>
+  );
+}
+
 export function IconMap(props) {
   return (
     <BaseIcon {...props}>

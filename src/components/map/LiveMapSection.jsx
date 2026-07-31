@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { MapView } from "./MapView";
 import { castVote } from "@/actions/votes";
+import { api } from "@/lib/axios";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useReports } from "@/hooks/useReports";
@@ -26,6 +27,58 @@ export function LiveMapSection({
   const [hideSettled, setHideSettled] = useState(false);
   const [showZones, setShowZones] = useState(true);
   const [pendingVoteId, setPendingVoteId] = useState(null);
+  const [routePendingId, setRoutePendingId] = useState(null);
+  const [route, setRoute] = useState(null);
+
+  /**
+   * Walking route from where the viewer is standing to the selected report,
+   * steered around reported hotspots where possible. Needs a live GPS fix —
+   * there is no sensible "from" without one.
+   */
+  async function handleShowRoute(report) {
+    if (!navigator.geolocation) {
+      notifyError("This browser can't share your location, so no route.");
+      return;
+    }
+
+    setRoutePendingId(report.id);
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000,
+        });
+      });
+
+      const response = await api.get("/safe-route", {
+        params: {
+          fromLat: position.coords.latitude,
+          fromLng: position.coords.longitude,
+          toLat: report.lat,
+          toLng: report.lng,
+        },
+      });
+
+      const data = response.data.data;
+      setRoute(data);
+      notifySuccess(
+        data.avoided
+          ? "Route found, clear of reported danger zones."
+          : "Route found, but it still passes a reported zone.",
+      );
+    } catch (error) {
+      setRoute(null);
+      notifyError(
+        error?.readableMessage ??
+          (error?.code === 1
+            ? "Location access was blocked, so no route could be worked out."
+            : "Couldn't work out a route right now."),
+      );
+    } finally {
+      setRoutePendingId(null);
+    }
+  }
 
   const { reports, loading, refresh } = useReports({
     scope: "all",
@@ -100,7 +153,11 @@ export function LiveMapSection({
         dangerZones={showZones ? dangerZones : []}
         isAuthenticated={isAuthenticated}
         pendingVoteId={pendingVoteId}
+        routePendingId={routePendingId}
+        route={route}
         onVote={handleVote}
+        onShowRoute={handleShowRoute}
+        onClearRoute={() => setRoute(null)}
         className={heightClass}
       />
     </div>

@@ -30,7 +30,11 @@ export function MapView({
   showLegend = true,
   isAuthenticated = false,
   pendingVoteId = null,
+  routePendingId = null,
+  route = null,
   onVote,
+  onShowRoute,
+  onClearRoute,
   onSelectReport,
   className,
 }) {
@@ -64,9 +68,16 @@ export function MapView({
         focusStatus={focusStatus}
         isAuthenticated={isAuthenticated}
         pendingVoteId={pendingVoteId}
+        routePendingId={routePendingId}
+        route={route}
         onVote={onVote}
+        onShowRoute={onShowRoute}
         onSelectReport={onSelectReport}
       />
+
+      {route ? (
+        <RouteSummary route={route} onClear={onClearRoute} />
+      ) : null}
 
       {showLegend ? (
         <MapLegend
@@ -166,6 +177,40 @@ function MapLegend({ counts, focusStatus, onToggleFocus, onClearFocus }) {
           </ul>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Sits over the map while a suggested route is displayed. */
+function RouteSummary({ route, onClear }) {
+  const minutes = Math.max(1, Math.round(route.duration / 60));
+  const km = (route.distance / 1000).toFixed(route.distance < 1000 ? 2 : 1);
+
+  return (
+    <div className="absolute right-3 bottom-3 left-3 z-1000 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border-subtle bg-surface/95 px-3 py-2.5 shadow-elevated sm:left-auto sm:max-w-sm">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-ink">
+          {route.avoided ? "Route clear of danger zones" : "Shortest route available"}
+        </p>
+        <p className="text-xs text-ink-muted">
+          <span className="font-mono">{km} km</span> · about{" "}
+          <span className="font-mono">{minutes} min</span> by road
+          {route.detoured ? " · detoured around a hotspot" : ""}
+        </p>
+        {!route.avoided ? (
+          <p className="mt-0.5 text-xs font-medium text-status-under-review-ink">
+            This one still passes a reported zone — take care.
+          </p>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={onClear}
+        className="rounded-sm text-xs font-medium text-brand-primary underline underline-offset-2 hover:text-brand-primary-dark"
+      >
+        Clear
+      </button>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import L from "leaflet";
 import {
   Circle,
   MapContainer,
+  Polyline,
   TileLayer,
   ZoomControl,
   useMap,
@@ -26,7 +27,10 @@ export default function LeafletMap({
   focusStatus = null,
   isAuthenticated = false,
   pendingVoteId = null,
+  routePendingId = null,
+  route = null,
   onVote,
+  onShowRoute,
   onSelectReport,
 }) {
   /* Fit to the focused status when one is chosen, otherwise to everything.
@@ -73,6 +77,34 @@ export default function LeafletMap({
 
       <FitToMarkers points={points} pointsKey={pointsKey} />
 
+      {/* Suggested walking route. Solid brand line when it clears every
+          reported zone, dashed when it couldn't — so a compromised route never
+          looks like a safe one. */}
+      {route?.path?.length ? (
+        <>
+          <Polyline
+            positions={route.path.map((p) => [p.lat, p.lng])}
+            pathOptions={{
+              color: "var(--color-surface)",
+              weight: 9,
+              opacity: 0.9,
+            }}
+          />
+          <Polyline
+            positions={route.path.map((p) => [p.lat, p.lng])}
+            pathOptions={{
+              color: route.avoided
+                ? "var(--color-brand-primary)"
+                : "var(--color-status-under-review)",
+              weight: 5,
+              opacity: 0.95,
+              dashArray: route.avoided ? null : "8 6",
+            }}
+          />
+          <FitToRoute route={route} />
+        </>
+      ) : null}
+
       {dangerZones.map((zone) => (
         <Circle
           key={zone.id}
@@ -95,12 +127,33 @@ export default function LeafletMap({
           active={focusStatus ? report.status === focusStatus : false}
           isAuthenticated={isAuthenticated}
           votePending={pendingVoteId === report.id}
+          routePending={routePendingId === report.id}
           onVote={onVote}
+          onShowRoute={onShowRoute}
           onSelect={onSelectReport}
         />
       ))}
     </MapContainer>
   );
+}
+
+/** Frames a freshly-computed route so both ends are on screen. */
+function FitToRoute({ route }) {
+  const map = useMap();
+  const key = route?.path?.length
+    ? `${route.distance}:${route.path.length}`
+    : null;
+
+  useEffect(() => {
+    if (!key || !route?.path?.length) return;
+    map.fitBounds(
+      L.latLngBounds(route.path.map((p) => [p.lat, p.lng])),
+      { padding: [56, 56], maxZoom: 17, animate: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, key]);
+
+  return null;
 }
 
 /**

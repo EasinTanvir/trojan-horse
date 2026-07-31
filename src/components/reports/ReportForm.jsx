@@ -7,12 +7,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { IconCamera, IconMapPin, IconSpinner } from "@/components/ui/icons";
+import { IconCamera, IconSpinner } from "@/components/ui/icons";
 import { useEdgeStore } from "@/lib/edgestore-client";
 import { cn } from "@/lib/cn";
-import { TYPE_META, TYPE_OPTIONS, formatCoords } from "@/lib/report-meta";
+import { TYPE_META, TYPE_OPTIONS } from "@/lib/report-meta";
 import { notifyError } from "@/lib/toast";
 import { reportSchema } from "@/lib/validation/reportSchema";
+import { LocationPicker } from "./LocationPicker";
 
 /**
  * Report creation form — one component for both report types; `type` is a
@@ -31,7 +32,7 @@ export function ReportForm({
   const { edgestore } = useEdgeStore();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [locating, setLocating] = useState(false);
+  const [locationLabel, setLocationLabel] = useState("");
 
   const {
     register,
@@ -58,40 +59,7 @@ export function ReportForm({
   const photoUrl = useWatch({ control, name: "photoUrl" });
   const lat = useWatch({ control, name: "lat" });
   const lng = useWatch({ control, name: "lng" });
-  const hasFix = Boolean(lat) && Boolean(lng);
 
-  function captureLocation() {
-    if (!navigator.geolocation) {
-      setError("lat", {
-        message: "This browser can't share your location. Try another browser.",
-      });
-      return;
-    }
-
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocating(false);
-        clearErrors(["lat", "lng"]);
-        setValue("lat", position.coords.latitude.toFixed(6), {
-          shouldValidate: true,
-        });
-        setValue("lng", position.coords.longitude.toFixed(6), {
-          shouldValidate: true,
-        });
-      },
-      (geoError) => {
-        setLocating(false);
-        const message =
-          geoError.code === geoError.PERMISSION_DENIED
-            ? "Location access was blocked. Allow it in your browser settings to report."
-            : "Couldn't get your location. Move somewhere with a clearer signal and try again.";
-        setError("lat", { message });
-        notifyError(message);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
-  }
 
   async function handlePhotoChange(event) {
     const file = event.target.files?.[0];
@@ -122,6 +90,7 @@ export function ReportForm({
     if (result?.success) {
       reset();
       setUploadProgress(0);
+      setLocationLabel("");
     }
     return result;
   }
@@ -202,51 +171,21 @@ export function ReportForm({
       />
 
       {/* Location ------------------------------------------------------- */}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">
-          Location
-          <span className="ml-0.5 text-danger" aria-hidden="true">
-            *
-          </span>
-        </span>
+      <LocationPicker
+        lat={lat}
+        lng={lng}
+        label={locationLabel}
+        error={errors.lat?.message ?? errors.lng?.message}
+        onChange={({ lat: nextLat, lng: nextLng, label }) => {
+          setLocationLabel(label);
+          clearErrors(["lat", "lng"]);
+          setValue("lat", nextLat, { shouldValidate: true });
+          setValue("lng", nextLng, { shouldValidate: true });
+        }}
+      />
 
-        <div className="flex flex-col gap-3 rounded-md border border-border-subtle bg-surface p-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <IconMapPin
-              className={cn(
-                "size-5 shrink-0",
-                hasFix ? "text-brand-primary" : "text-ink-muted",
-              )}
-            />
-            <div>
-              <p className="text-sm text-ink">
-                {hasFix ? "Location captured" : "No location captured yet"}
-              </p>
-              <p className="font-mono text-xs text-ink-muted">
-                {hasFix ? formatCoords(lat, lng) : "—"}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            loading={locating}
-            onClick={captureLocation}
-          >
-            {hasFix ? "Re-capture" : "Use my location"}
-          </Button>
-        </div>
-
-        <input type="hidden" {...register("lat")} />
-        <input type="hidden" {...register("lng")} />
-
-        {errors.lat || errors.lng ? (
-          <p className="text-xs font-medium text-danger">
-            {errors.lat?.message ?? errors.lng?.message}
-          </p>
-        ) : null}
-      </div>
+      <input type="hidden" {...register("lat")} />
+      <input type="hidden" {...register("lng")} />
 
       {/* Photo ---------------------------------------------------------- */}
       <div className="flex flex-col gap-1.5">

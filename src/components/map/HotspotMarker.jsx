@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Marker, Popup } from "react-leaflet";
 import { StatusBadge } from "@/components/reports/StatusBadge";
 import { Button, buttonClasses } from "@/components/ui/Button";
-import { IconCheckCircle } from "@/components/ui/icons";
+import { IconCheckCircle, IconRoute } from "@/components/ui/icons";
 import {
   formatCoords,
   formatRelative,
@@ -70,7 +70,9 @@ export function HotspotMarker({
   active = false,
   isAuthenticated = false,
   votePending = false,
+  routePending = false,
   onVote,
+  onShowRoute,
   onSelect,
 }) {
   const typeMeta = getTypeMeta(report.type);
@@ -146,6 +148,18 @@ export function HotspotMarker({
 
           {/* Anyone signed in can confirm anyone's report — one vote per
               person per report, enforced by a unique index. */}
+          {/* Steers around reported hotspots where it can — see /api/safe-route. */}
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            loading={routePending}
+            onClick={() => onShowRoute?.(report)}
+          >
+            <IconRoute className="size-4" />
+            Show safe route
+          </Button>
+
           {isAuthenticated ? (
             <Button
               variant="secondary"
