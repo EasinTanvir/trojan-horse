@@ -6,15 +6,36 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:push": "node --env-file=.env node_modules/drizzle-kit/bin.cjs push",
+    "db:generate": "node --env-file=.env node_modules/drizzle-kit/bin.cjs generate",
+    "db:seed": "node --env-file=.env db/seed.js"
   },
+  "type": "module",
   "dependencies": {
+    "@edgestore/react": "^0.8.0",
+    "@edgestore/server": "^0.8.0",
+    "@hookform/resolvers": "^5.5.7",
+    "@neondatabase/serverless": "^1.1.0",
+    "axios": "^1.19.0",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
+    "jose": "^6.2.5",
+    "leaflet": "^1.9.4",
     "next": "16.2.12",
+    "pusher": "^5.3.4",
+    "pusher-js": "^8.6.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.83.0",
+    "react-hot-toast": "^2.6.0",
+    "react-leaflet": "^5.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4"
