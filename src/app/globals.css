@@ -175,6 +175,28 @@
   }
 }
 
+/* --- Map pins ------------------------------------------------------------
+   Settled reports stay on the map but recede, so live problems read first
+   (04-features-spec.md). The focused pin lifts instead of recolouring, which
+   would break the one-colour-per-status rule. */
+.nirapod-pin {
+  transition:
+    opacity 150ms ease-out,
+    filter 150ms ease-out;
+}
+
+.marker-receded {
+  opacity: 0.5;
+}
+
+.marker-receded:hover {
+  opacity: 0.85;
+}
+
+.marker-active {
+  filter: drop-shadow(0 3px 6px rgb(26 31 29 / 0.35));
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

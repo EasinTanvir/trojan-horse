@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LiveMapSection } from "@/components/map/LiveMapSection";
 import { buttonClasses } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import {
@@ -93,6 +94,27 @@ export default async function HomePage() {
             )}
           </div>
         </div>
+
+        {/* The live map is the product — show it rather than describe it. Reads
+            the public scope=all feed, so it works signed out. */}
+        <section className="mt-10 flex flex-col gap-3" aria-labelledby="live-map-heading">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2
+              id="live-map-heading"
+              className="font-display text-lg font-semibold text-ink"
+            >
+              What has been reported so far
+            </h2>
+            <Link
+              href="/user/map"
+              className="rounded-sm text-sm font-medium text-brand-primary underline underline-offset-2 hover:text-brand-primary-dark"
+            >
+              Open the full map
+            </Link>
+          </div>
+
+          <LiveMapSection heightClass="h-[55svh] min-h-80 sm:min-h-96" />
+        </section>
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {STEPS.map((step) => {

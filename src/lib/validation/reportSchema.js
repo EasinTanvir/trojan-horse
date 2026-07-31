@@ -13,7 +13,8 @@ import { REPORT_TYPES } from "@/lib/report-meta";
  * it's chosen, and the returned URL is what gets validated and stored. The
  * reports.photo_url column is NOT NULL, so a photo is required.
  */
-export const reportSchema = z.object({
+export const reportSchema = z
+  .object({
   type: z.enum(REPORT_TYPES, "Choose what you are reporting"),
   cityCorporationId: z.uuid(
     "Select the City Corporation responsible for this area",
@@ -28,8 +29,15 @@ export const reportSchema = z.object({
     .number("Capture the location before submitting")
     .min(-90, "Latitude looks wrong")
     .max(90, "Latitude looks wrong"),
-  lng: z.coerce
-    .number("Capture the location before submitting")
-    .min(-180, "Longitude looks wrong")
-    .max(180, "Longitude looks wrong"),
-});
+    lng: z.coerce
+      .number("Capture the location before submitting")
+      .min(-180, "Longitude looks wrong")
+      .max(180, "Longitude looks wrong"),
+  })
+  /* Exactly (0,0) is "Null Island" — what a failed GPS fix reports rather than
+     a real place. Accepting it puts a Dhaka hazard in the Gulf of Guinea and
+     drags the map's auto-fit out to the whole world. */
+  .refine((values) => !(values.lat === 0 && values.lng === 0), {
+    message: "That didn't return a real location. Capture it again.",
+    path: ["lat"],
+  });

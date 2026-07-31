@@ -13,44 +13,56 @@ import {
 /**
  * Map marker for one report.
  *
- * 04-features-spec.md: shape carries the *type*, color carries the *status*.
- *   triangle -> hazard          circle -> crime_hotspot
- * Resolved and verified reports stay on the map but recede in opacity rather
- * than disappearing.
+ * Shape carries the *type*, colour carries the *status* — unchanged encoding,
+ * now drawn from real pin assets in /public/markers rather than inline divIcon
+ * HTML, so the markers read as proper map pins.
  *
- * Colors are pulled as CSS custom properties from the theme so the locked
- * status palette is never re-typed as a hex here.
+ * Resolved and verified reports stay on the map but recede (see
+ * .marker-receded in globals.css) rather than disappearing.
  */
 const RECEDED_STATUSES = new Set(["resolved", "verified"]);
 
-export function createMarkerIcon({ type, status, pulse = false }) {
-  const statusMeta = getStatusMeta(status);
-  const typeMeta = getTypeMeta(type);
-  const color = statusMeta.markerColor;
-  const opacity = RECEDED_STATUSES.has(status) ? 0.55 : 1;
+/* Filenames are `${shape}-${status}.svg`; both halves come from the metadata
+   maps so a new status or type can't silently point at a missing asset. */
+const TYPE_SLUG = { hazard: "hazard", crime_hotspot: "crime" };
 
-  const pulseRing = pulse
-    ? `<span style="position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:9999px;background:${color}" class="animate-marker-pulse"></span>`
-    : "";
+/** Cached so panning doesn't rebuild an icon per marker per render. */
+const iconCache = new Map();
 
-  const shape =
-    typeMeta.markerShape === "triangle"
-      ? `<span style="position:absolute;inset:0;background:var(--color-surface);clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
-         <span style="position:absolute;left:2px;right:2px;top:3px;bottom:2px;background:${color};clip-path:polygon(50% 0,100% 100%,0 100%)"></span>
-         <span style="position:absolute;left:50%;top:12px;width:3px;height:7px;margin-left:-1.5px;border-radius:1px;background:var(--color-surface)"></span>`
-      : `<span style="position:absolute;inset:1px;border-radius:9999px;background:${color};border:2px solid var(--color-surface)"></span>
-         <span style="position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:9999px;background:var(--color-surface)"></span>`;
+export function createMarkerIcon({ type, status, active = false }) {
+  const typeSlug = TYPE_SLUG[type] ?? "hazard";
+  const statusSlug = (getStatusMeta(status).value ?? "under_review").replace(
+    /_/g,
+    "-",
+  );
+  const receded = RECEDED_STATUSES.has(status);
+  const key = `${typeSlug}-${statusSlug}-${active ? "a" : "n"}-${receded ? "r" : "f"}`;
 
-  return L.divIcon({
-    className: "nirapod-marker",
-    html: `<span style="position:relative;display:block;width:28px;height:28px;opacity:${opacity};filter:drop-shadow(0 1px 2px rgb(26 31 29 / 0.35))">${pulseRing}${shape}</span>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 26],
-    popupAnchor: [0, -24],
+  const cached = iconCache.get(key);
+  if (cached) return cached;
+
+  const icon = new L.Icon({
+    iconUrl: `/markers/${typeSlug}-${statusSlug}.svg`,
+    shadowUrl: "/markers/pin-shadow.svg",
+    iconSize: active ? [40, 55] : [32, 44],
+    iconAnchor: active ? [20, 55] : [16, 44],
+    popupAnchor: [0, active ? -50 : -40],
+    shadowSize: [32, 12],
+    shadowAnchor: [10, 8],
+    className: [
+      "nirapod-pin",
+      receded && !active ? "marker-receded" : "",
+      active ? "marker-active" : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
   });
+
+  iconCache.set(key, icon);
+  return icon;
 }
 
-export function HotspotMarker({ report, pulse = false, onSelect }) {
+export function HotspotMarker({ report, active = false, onSelect }) {
   const typeMeta = getTypeMeta(report.type);
 
   return (
@@ -59,8 +71,9 @@ export function HotspotMarker({ report, pulse = false, onSelect }) {
       icon={createMarkerIcon({
         type: report.type,
         status: report.status,
-        pulse,
+        active,
       })}
+      zIndexOffset={active ? 1000 : 0}
       alt={`${typeMeta.label}, ${getStatusMeta(report.status).label}`}
       eventHandlers={onSelect ? { click: () => onSelect(report) } : undefined}
     >
@@ -96,7 +109,7 @@ export function HotspotMarker({ report, pulse = false, onSelect }) {
             </div>
             <div className="flex justify-between gap-2">
               <dt>Confirmations</dt>
-              <dd className="font-mono text-ink">{report.votes}</dd>
+              <dd className="font-mono text-ink">{report.votes ?? 0}</dd>
             </div>
           </dl>
         </div>
