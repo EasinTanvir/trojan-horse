@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { REPORT_STATUSES } from "@/lib/report-meta";
+import { REPORT_STATUSES, SOS_STATUSES } from "@/lib/report-meta";
 
 /**
  * Shape of a status update. This schema does NOT decide who may perform a
@@ -17,6 +17,11 @@ export const statusUpdateSchema = z.object({
 
 export const voteSchema = z.object({
   reportId: z.uuid("That report could not be identified"),
+});
+
+export const sosStatusUpdateSchema = z.object({
+  sosId: z.uuid("That alert could not be identified"),
+  status: z.enum(SOS_STATUSES, "Choose a status"),
 });
 
 export const sosSchema = z.object({

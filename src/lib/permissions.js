@@ -55,3 +55,14 @@ export function canTriggerSos({ role }) {
 export function canReceiveSosAlerts({ role }) {
   return role === "city_corp" || role === "management";
 }
+
+/**
+ * Either authority role may move an SOS alert between pending and resolved.
+ *
+ * Deliberately unlike the report lifecycle, where Management is restricted to a
+ * single transition: an emergency needs whoever sees it first to be able to
+ * mark it handled, and there is no `verified` equivalent to protect.
+ */
+export function canUpdateSosStatus({ role }) {
+  return role === "city_corp" || role === "management";
+}

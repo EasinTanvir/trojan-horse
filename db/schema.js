@@ -30,6 +30,13 @@ export const reportStatusEnum = pgEnum("report_status", [
   "verified",
 ]);
 
+/**
+ * SOS alerts carry their own two-state lifecycle, separate from a report's
+ * three-state one: an alert is either still open or has been dealt with.
+ * Both Management and City Corporation can move it.
+ */
+export const sosStatusEnum = pgEnum("sos_status", ["pending", "resolved"]);
+
 export const cityCorporations = pgTable("city_corporations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
@@ -112,17 +119,29 @@ export const reportVotes = pgTable(
   ],
 );
 
-export const sosAlerts = pgTable("sos_alerts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id),
-  cityCorporationId: uuid("city_corporation_id")
-    .notNull()
-    .references(() => cityCorporations.id),
-  lat: doublePrecision("lat").notNull(),
-  lng: doublePrecision("lng").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const sosAlerts = pgTable(
+  "sos_alerts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    cityCorporationId: uuid("city_corporation_id")
+      .notNull()
+      .references(() => cityCorporations.id),
+    /* New alerts always arrive pending; either authority role may resolve. */
+    status: sosStatusEnum("status").notNull().default("pending"),
+    lat: doublePrecision("lat").notNull(),
+    lng: doublePrecision("lng").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("sos_alerts_city_corporation_id_idx").on(table.cityCorporationId),
+    index("sos_alerts_status_idx").on(table.status),
+  ],
+);

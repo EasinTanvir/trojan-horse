@@ -4,6 +4,7 @@ import {
   IconCrime,
   IconHazard,
   IconShieldCheck,
+  IconSiren,
 } from "@/components/ui/icons";
 
 /**
@@ -47,6 +48,39 @@ export const STATUS_OPTIONS = REPORT_STATUSES.map((value) => ({
   value,
   label: STATUS_META[value].label,
 }));
+
+/**
+ * SOS alert status -> label, tone, icon. Separate two-state lifecycle from a
+ * report's three-state one.
+ *
+ * `pending` uses the danger tone rather than the amber under-review tone: an
+ * unanswered SOS is an active emergency, and danger is already this app's
+ * colour for exactly that. `resolved` reuses the same blue as a resolved
+ * report, so one word keeps one colour across the whole app
+ * (05-ui-guidelines.md checklist).
+ */
+export const SOS_STATUS_META = {
+  pending: {
+    value: "pending",
+    label: "Pending",
+    tone: "danger",
+    icon: IconSiren,
+    description: "Nobody has responded to this yet",
+  },
+  resolved: {
+    value: "resolved",
+    label: "Resolved",
+    tone: "resolved",
+    icon: IconCheckCircle,
+    description: "An authority has dealt with this",
+  },
+};
+
+export const SOS_STATUSES = Object.keys(SOS_STATUS_META);
+
+export function getSosStatusMeta(status) {
+  return SOS_STATUS_META[status] ?? SOS_STATUS_META.pending;
+}
 
 /** Report type -> icon + wording. Type drives marker *shape*, status drives color. */
 export const TYPE_META = {

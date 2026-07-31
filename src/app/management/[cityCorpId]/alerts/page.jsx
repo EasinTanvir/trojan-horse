@@ -22,7 +22,7 @@ export default async function ManagementAlertsPage({ params }) {
       />
 
       <div className="p-4 sm:p-6">
-        <SosAlertFeed cityCorpId={cityCorpId} />
+        <SosAlertFeed cityCorpId={cityCorpId} role="management" />
       </div>
     </>
   );

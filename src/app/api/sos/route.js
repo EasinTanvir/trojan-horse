@@ -46,9 +46,11 @@ export async function GET(request) {
     const rows = await db
       .select({
         id: sosAlerts.id,
+        status: sosAlerts.status,
         lat: sosAlerts.lat,
         lng: sosAlerts.lng,
         createdAt: sosAlerts.createdAt,
+        updatedAt: sosAlerts.updatedAt,
         userId: users.id,
         userName: users.name,
       })
@@ -63,9 +65,11 @@ export async function GET(request) {
       error: null,
       data: rows.map((row) => ({
         id: row.id,
+        status: row.status,
         lat: row.lat,
         lng: row.lng,
         createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
         user: { id: row.userId, name: row.userName },
       })),
     });
