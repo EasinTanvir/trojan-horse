@@ -309,8 +309,7 @@ npm run dev
 - [ ] 3–5 minute demo video / live walkthrough
 
 ---
-
-_Built for [Hackathon Name] — Problem Statement 2: Community-Driven Public Safety Platform._
+Problem Statement 2: Community-Driven Public Safety Platform.
 
 Dhaka North management-dhaka-north@example.com Management#2026
 Dhaka South management-dhaka-south@example.com Management#2026
