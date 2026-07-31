@@ -1,9 +1,11 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { reports } from "@/db/schema";
+import { cityCorporations, reports } from "@/db/schema";
 import { authorize } from "@/lib/session";
+import { isInsideRegion, regionForCityCorp } from "@/lib/city-corp-regions";
 import { canCreateReport } from "@/lib/permissions";
 import { reportSchema } from "@/lib/validation/reportSchema";
 
@@ -37,6 +39,31 @@ export async function createReport(values) {
   }
 
   try {
+    /* Re-check the point falls in the chosen authority's area. The form draws
+       and enforces this, but client validation is never the boundary. */
+    const [corp] = await db
+      .select({ id: cityCorporations.id, name: cityCorporations.name })
+      .from(cityCorporations)
+      .where(eq(cityCorporations.id, parsed.data.cityCorporationId))
+      .limit(1);
+
+    if (!corp) {
+      return {
+        success: false,
+        error: "That City Corporation doesn't exist.",
+        data: null,
+      };
+    }
+
+    const region = regionForCityCorp(corp);
+    if (!isInsideRegion({ lat: parsed.data.lat, lng: parsed.data.lng }, region)) {
+      return {
+        success: false,
+        error: `That location is outside ${corp.name}. Pick a point inside its area.`,
+        data: null,
+      };
+    }
+
     const [created] = await db
       .insert(reports)
       .values({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +14,7 @@ import { TYPE_META, TYPE_OPTIONS } from "@/lib/report-meta";
 import { notifyError } from "@/lib/toast";
 import { reportSchema } from "@/lib/validation/reportSchema";
 import { LocationPicker } from "./LocationPicker";
+import { isInsideRegion, regionForCityCorp } from "@/lib/city-corp-regions";
 
 /**
  * Report creation form — one component for both report types; `type` is a
@@ -59,6 +60,29 @@ export function ReportForm({
   const photoUrl = useWatch({ control, name: "photoUrl" });
   const lat = useWatch({ control, name: "lat" });
   const lng = useWatch({ control, name: "lng" });
+  const cityCorporationId = useWatch({ control, name: "cityCorporationId" });
+
+  /* The chosen authority decides which area a valid pin can fall inside. */
+  const region = useMemo(() => {
+    const corp = cityCorporations.find((c) => c.id === cityCorporationId);
+    return corp ? regionForCityCorp(corp) : null;
+  }, [cityCorporations, cityCorporationId]);
+
+  /* Switching authority can strand an already-picked pin outside the new area;
+     clear it rather than submitting a point the server will reject. */
+  useEffect(() => {
+    if (!region || !lat || !lng) return undefined;
+    if (isInsideRegion({ lat, lng }, region)) return undefined;
+
+    /* Deferred a tick: React Compiler rejects a synchronous setState in an
+       effect body, and clearing on the next tick is indistinguishable here. */
+    const clear = setTimeout(() => {
+      setValue("lat", "");
+      setValue("lng", "");
+      setLocationLabel("");
+    }, 0);
+    return () => clearTimeout(clear);
+  }, [region, lat, lng, setValue]);
 
 
   async function handlePhotoChange(event) {
@@ -175,6 +199,7 @@ export function ReportForm({
         lat={lat}
         lng={lng}
         label={locationLabel}
+        region={region}
         error={errors.lat?.message ?? errors.lng?.message}
         onChange={({ lat: nextLat, lng: nextLng, label }) => {
           setLocationLabel(label);
