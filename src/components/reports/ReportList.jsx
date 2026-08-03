@@ -29,10 +29,15 @@ export function ReportList({
   emptyMessage = "Nothing has been reported here so far.",
   onVote,
   onStatusChange,
+  units,
+  onDispatch,
+  onWorkDone,
+  pendingWorkId,
   pendingVoteId,
   className,
 }) {
-  const isAuthority = role === "management" || role === "city_corp";
+  const isAuthority =
+    role === "management" || role === "city_corp" || role === "response_unit";
   const dense = compact ?? isAuthority;
   const hasFilters = Boolean(filters.status || filters.type);
 
@@ -104,6 +109,10 @@ export function ReportList({
                 compact={dense}
                 onVote={onVote}
                 onStatusChange={onStatusChange}
+                units={units}
+                onDispatch={onDispatch}
+                onWorkDone={onWorkDone}
+                workPending={pendingWorkId === report.id}
                 votePending={pendingVoteId === report.id}
               />
             </li>

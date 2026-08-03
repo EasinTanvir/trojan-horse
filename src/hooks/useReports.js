@@ -96,6 +96,44 @@ export function useReports({
   return { reports, meta, loading, error, refresh };
 }
 
+/**
+ * Response units for one City Corporation, for the dispatch control.
+ *
+ * Called ONCE at queue level and passed down — never per card, or a 50-row
+ * queue fires 50 identical requests.
+ */
+export function useResponseUnits({ cityCorpId } = {}) {
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!cityCorpId) return undefined;
+    let cancelled = false;
+
+    api
+      .get("/response-units", { params: { cityCorpId } })
+      .then((response) => {
+        if (cancelled) return;
+        setUnits(response.data.data ?? []);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        notifyError(
+          error.readableMessage ?? "Couldn't load the response unit list.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cityCorpId]);
+
+  return { units, loading };
+}
+
 /** City Corporation list for the report form select and the SOS dialog. */
 export function useCityCorporations() {
   const [cityCorporations, setCityCorporations] = useState([]);

@@ -25,8 +25,17 @@ function secretKey() {
   return new TextEncoder().encode(secret);
 }
 
-export async function createSession({ userId, role, cityCorporationId }) {
-  const token = await new SignJWT({ role, cityCorporationId: cityCorporationId ?? null })
+export async function createSession({
+  userId,
+  role,
+  cityCorporationId,
+  responseUnitId,
+}) {
+  const token = await new SignJWT({
+    role,
+    cityCorporationId: cityCorporationId ?? null,
+    responseUnitId: responseUnitId ?? null,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
@@ -67,6 +76,7 @@ export async function getSession() {
       userId: payload.sub,
       role: payload.role,
       cityCorporationId: payload.cityCorporationId ?? null,
+      responseUnitId: payload.responseUnitId ?? null,
     };
   } catch {
     /* Expired or tampered — treat exactly like signed out. */
@@ -88,7 +98,7 @@ export async function getSession() {
  * experimental and needs `experimental.authInterrupts` — not something to
  * depend on for the demo.
  */
-export async function requireRole(allowedRoles, { cityCorpId } = {}) {
+export async function requireRole(allowedRoles, { cityCorpId, unitId } = {}) {
   const session = await getSession();
 
   if (!session) redirect("/login?error=signin");
@@ -100,6 +110,11 @@ export async function requireRole(allowedRoles, { cityCorpId } = {}) {
     redirect("/login?error=scope");
   }
 
+  /* A unit login may only ever reach its own unit's pages. */
+  if (unitId && session.responseUnitId !== unitId) {
+    redirect("/login?error=scope");
+  }
+
   return session;
 }
 
@@ -108,7 +123,7 @@ export async function requireRole(allowedRoles, { cityCorpId } = {}) {
  * and Route Handlers, which must answer with { success, error, data } rather
  * than throw a navigation.
  */
-export async function authorize(allowedRoles, { cityCorpId } = {}) {
+export async function authorize(allowedRoles, { cityCorpId, unitId } = {}) {
   const session = await getSession();
   if (!session) return { session: null, error: "You need to sign in first." };
 
@@ -124,13 +139,18 @@ export async function authorize(allowedRoles, { cityCorpId } = {}) {
     };
   }
 
+  if (unitId && session.responseUnitId !== unitId) {
+    return { session: null, error: "That belongs to a different unit." };
+  }
+
   return { session, error: null };
 }
 
 /** Where each role lands after signing in (06-auth.md). */
-export function homePathForSession({ role, cityCorporationId }) {
+export function homePathForSession({ role, cityCorporationId, responseUnitId }) {
   if (role === "management") return `/management/${cityCorporationId}/reports`;
   if (role === "city_corp") return `/city-corp/${cityCorporationId}/reports`;
+  if (role === "response_unit") return `/unit/${responseUnitId}/work`;
   return "/user/map";
 }
 

@@ -35,6 +35,7 @@ export async function updateReportStatus(values) {
         id: reports.id,
         status: reports.status,
         cityCorporationId: reports.cityCorporationId,
+        dispatchStatus: reports.dispatchStatus,
       })
       .from(reports)
       .where(eq(reports.id, reportId))
@@ -77,6 +78,13 @@ export async function updateReportStatus(values) {
        ignored rather than rejected — the field isn't theirs to send. */
     if (canEditRemark({ role: session.role })) {
       patch.statusComment = statusComment?.trim() ? statusComment.trim() : null;
+    }
+
+    /* A dispatch closes itself when the work it was for is marked resolved.
+       Nobody has to remember a second button, and the unit's assignment stays
+       on the record rather than being cleared. */
+    if (status === "resolved" && existing.dispatchStatus === "dispatched") {
+      patch.dispatchStatus = "completed";
     }
 
     await db.update(reports).set(patch).where(eq(reports.id, reportId));

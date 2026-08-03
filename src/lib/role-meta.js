@@ -33,6 +33,13 @@ export const ROLE_META = {
         label: "Report queue",
         icon: "list",
       },
+      /* The roster Management dispatches to. Units have no login of their own —
+         this is Management maintaining a list of places. */
+      {
+        href: "/management/[cityCorpId]/units",
+        label: "Response units",
+        icon: "send",
+      },
       /* SOS alerts reach Management as well as City Corp — a widening of
          07-realtime-pusher.md, made on request. Same channel, two subscribers. */
       {
@@ -57,6 +64,19 @@ export const ROLE_META = {
       { href: "/city-corp/[cityCorpId]/alerts", label: "SOS alerts", icon: "siren" },
     ],
   },
+  /* A response unit sees only what was dispatched to it. Scoped by
+     [unitId], not [cityCorpId] — resolveHref fills either placeholder. */
+  response_unit: {
+    role: "response_unit",
+    label: "Response unit",
+    accentClass: "bg-role-unit",
+    accentTextClass: "text-role-unit",
+    home: "/unit/[unitId]/work",
+    nav: [
+      { href: "/unit/[unitId]/work", label: "My jobs", icon: "send" },
+      { href: "/unit/[unitId]/alerts", label: "SOS alerts", icon: "siren" },
+    ],
+  },
 };
 
 export function getRoleMeta(role) {
@@ -64,6 +84,8 @@ export function getRoleMeta(role) {
 }
 
 /** Fills the [cityCorpId] placeholder in a role's nav hrefs. */
-export function resolveHref(href, cityCorpId) {
-  return cityCorpId ? href.replace("[cityCorpId]", cityCorpId) : href;
+export function resolveHref(href, cityCorpId, unitId) {
+  return href
+    .replace("[cityCorpId]", cityCorpId ?? "[cityCorpId]")
+    .replace("[unitId]", unitId ?? "[unitId]");
 }

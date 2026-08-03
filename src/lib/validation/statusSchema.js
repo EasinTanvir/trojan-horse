@@ -25,7 +25,9 @@ export const sosStatusUpdateSchema = z.object({
 });
 
 export const sosSchema = z.object({
-  cityCorporationId: z.uuid("Choose which City Corporation should receive this"),
+  /* Optional: triggerSOS derives the jurisdiction from the coordinates. Asking
+     a frightened person to operate a dropdown was the wrong design. */
+  cityCorporationId: z.uuid().optional(),
   lat: z.coerce.number("Location unavailable").min(-90).max(90),
   lng: z.coerce.number("Location unavailable").min(-180).max(180),
 });

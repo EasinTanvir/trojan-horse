@@ -46,6 +46,8 @@
   --color-role-user: #0f5c4c;
   --color-role-management: #24506b;
   --color-role-city-corp: #3c3a6b;
+  /* Response unit panel — same cool municipal family, distinct from the three. */
+  --color-role-unit: #4a5240;
 
   /* --- Typography ------------------------------------------------------ */
   --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;

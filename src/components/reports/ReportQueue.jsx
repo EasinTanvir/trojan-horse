@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ReportList } from "./ReportList";
 import { updateReportStatus } from "@/actions/status";
-import { useReports } from "@/hooks/useReports";
+import { dispatchReport } from "@/actions/dispatch";
+import { useReports, useResponseUnits } from "@/hooks/useReports";
 import { getStatusMeta } from "@/lib/report-meta";
 import { notifyError, notifySuccess } from "@/lib/toast";
 
@@ -25,6 +26,22 @@ export function ReportQueue({ cityCorpId, role, emptyTitle, emptyMessage }) {
     status: filters.status,
     type: filters.type,
   });
+
+  /* Fetched ONCE here, not per card — 50 rows would otherwise fire 50 requests. */
+  const { units } = useResponseUnits({ cityCorpId });
+
+  async function handleDispatch(payload) {
+    const result = await dispatchReport(payload);
+
+    if (result.success) {
+      notifySuccess(`Dispatched to ${result.data.unitName}.`);
+      refresh();
+    } else {
+      notifyError(result.error);
+    }
+
+    return result;
+  }
 
   async function handleStatusChange(payload) {
     const result = await updateReportStatus(payload);
@@ -49,6 +66,8 @@ export function ReportQueue({ cityCorpId, role, emptyTitle, emptyMessage }) {
       onFiltersChange={setFilters}
       total={meta?.total}
       onStatusChange={handleStatusChange}
+      units={units}
+      onDispatch={handleDispatch}
       emptyTitle={emptyTitle}
       emptyMessage={emptyMessage}
     />

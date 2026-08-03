@@ -6,6 +6,7 @@ import {
   IconList,
   IconMap,
   IconPlus,
+  IconSend,
   IconSiren,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
@@ -21,9 +22,10 @@ const NAV_ICONS = {
   plus: IconPlus,
   list: IconList,
   siren: IconSiren,
+  send: IconSend,
 };
 
-export function PanelNav({ role, cityCorpId, onNavigate, className }) {
+export function PanelNav({ role, cityCorpId, unitId, onNavigate, className }) {
   const pathname = usePathname();
   const meta = getRoleMeta(role);
 
@@ -31,7 +33,7 @@ export function PanelNav({ role, cityCorpId, onNavigate, className }) {
     <nav aria-label={`${meta.label} sections`} className={cn("p-3", className)}>
       <ul className="flex flex-col gap-1">
         {meta.nav.map((item) => {
-          const href = resolveHref(item.href, cityCorpId);
+          const href = resolveHref(item.href, cityCorpId, unitId);
           const isActive = pathname === href || pathname.startsWith(`${href}/`);
           const Icon = NAV_ICONS[item.icon] ?? IconList;
 

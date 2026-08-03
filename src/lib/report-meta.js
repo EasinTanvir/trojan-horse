@@ -67,6 +67,14 @@ export const SOS_STATUS_META = {
     icon: IconSiren,
     description: "Nobody has responded to this yet",
   },
+  /* Second here for display order; last in the pg enum for migration safety. */
+  acknowledged: {
+    value: "acknowledged",
+    label: "Acknowledged",
+    tone: "under-review",
+    icon: IconClock,
+    description: "An authority has seen this and is on the way",
+  },
   resolved: {
     value: "resolved",
     label: "Resolved",

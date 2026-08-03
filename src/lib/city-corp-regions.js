@@ -44,6 +44,71 @@ export function regionForCityCorp(cityCorp) {
 }
 
 /**
+ * Dhaka North lies above roughly this latitude, Dhaka South below it.
+ *
+ * This exists ONLY to break the tie where the two approximate circles overlap
+ * across central Dhaka. Without it, Farmgate — real DNCC territory — routes to
+ * DSCC purely because the southern circle's centre happens to sit closer, and
+ * an SOS would page the wrong control room. Distance to an arbitrary circle
+ * centre is not a meaningful signal once both circles contain the point;
+ * which side of the city you are on is.
+ */
+const NORTH_SOUTH_DIVIDE_LAT = 23.7455;
+
+/**
+ * Which City Corporation should receive something happening at this point.
+ *
+ * Prefers a corporation whose circle contains the point. When both do — the
+ * overlap through central Dhaka — the north/south divide decides. When neither
+ * does, returns the closest anyway with `inside: false`.
+ *
+ * **Never returns null for a non-empty list.** It routes SOS alerts, and an
+ * emergency must not fail to reach anyone because a coordinate landed in a gap
+ * between two approximations.
+ */
+export function nearestCityCorpFor(point, cityCorps = []) {
+  if (point?.lat == null || point?.lng == null) return null;
+
+  const here = { lat: Number(point.lat), lng: Number(point.lng) };
+
+  const candidates = [];
+  for (const cityCorp of cityCorps) {
+    const region = regionForCityCorp(cityCorp);
+    if (!region) continue;
+
+    const distance = haversineDistance(here, region);
+    candidates.push({
+      cityCorp,
+      distance,
+      inside: distance <= region.radius,
+      isNorth: /north/i.test(cityCorp.name),
+    });
+  }
+
+  if (candidates.length === 0) {
+    /* No region matched any name — fall back rather than dropping the alert. */
+    return cityCorps.length > 0
+      ? { cityCorp: cityCorps[0], distance: null, inside: false }
+      : null;
+  }
+
+  const insiders = candidates.filter((candidate) => candidate.inside);
+
+  if (insiders.length === 1) return insiders[0];
+
+  if (insiders.length > 1) {
+    const wantNorth = here.lat >= NORTH_SOUTH_DIVIDE_LAT;
+    const bySide = insiders.find(
+      (candidate) => candidate.isNorth === wantNorth,
+    );
+    if (bySide) return bySide;
+  }
+
+  /* Nothing contains the point (or the divide couldn't decide) — closest wins. */
+  return [...candidates].sort((a, b) => a.distance - b.distance)[0];
+}
+
+/**
  * Is this point inside the region? Unknown regions return true — an authority
  * we have no boundary for should not block reporting entirely.
  */

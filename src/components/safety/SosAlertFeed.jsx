@@ -5,12 +5,21 @@ import { updateSosStatus } from "@/actions/sos";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { IconMapPin, IconSiren } from "@/components/ui/icons";
+import {
+  IconFlame,
+  IconMapPin,
+  IconPolice,
+  IconSiren,
+} from "@/components/ui/icons";
 import { api } from "@/lib/axios";
 import { cn } from "@/lib/cn";
 import { canUpdateSosStatus } from "@/lib/permissions";
 import { getPusherClient } from "@/lib/pusher-client";
-import { SOS_EVENT, sosChannelName } from "@/lib/pusher-channels";
+import {
+  SOS_EVENT,
+  SOS_STATUS_EVENT,
+  sosChannelName,
+} from "@/lib/pusher-channels";
 import {
   formatCoords,
   formatDateTime,
@@ -29,14 +38,17 @@ import { notifyError, notifyInfo, notifySuccess } from "@/lib/toast";
  *
  * History loads over Axios; Pusher only prepends what arrives afterwards.
  */
-export function SosAlertFeed({ cityCorpId, role, className }) {
+export function SosAlertFeed({ cityCorpId, role, unitType, className }) {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(false);
   const [pendingId, setPendingId] = useState(null);
   const seenIds = useRef(new Set());
 
+  /* Units see alerts but don't move them — acknowledging is the control
+     room's call, and canUpdateSosStatus already says management/city_corp. */
   const canUpdate = canUpdateSosStatus({ role });
+  void unitType; /* access is decided server-side; kept for prop symmetry */
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +93,8 @@ export function SosAlertFeed({ cityCorpId, role, className }) {
           lng: payload.lng,
           createdAt: payload.createdAt,
           user: { id: payload.userId, name: payload.userName },
+          nearestThana: payload.nearestThana ?? null,
+          nearestFireUnit: payload.nearestFireUnit ?? null,
         },
         ...current,
       ]);
@@ -88,11 +102,25 @@ export function SosAlertFeed({ cityCorpId, role, className }) {
       notifyInfo(`New SOS from ${payload.userName}.`);
     };
 
+    /* Keeps both authority panels in step. The acting client receives its own
+       broadcast too, but the patch is idempotent, so no echo suppression. */
+    const onStatusChange = (payload) => {
+      setAlerts((current) =>
+        current.map((alert) =>
+          alert.id === payload.sosId
+            ? { ...alert, status: payload.status }
+            : alert,
+        ),
+      );
+    };
+
     channel.bind("pusher:subscription_succeeded", onSubscribed);
     channel.bind(SOS_EVENT, onAlert);
+    channel.bind(SOS_STATUS_EVENT, onStatusChange);
 
     return () => {
       channel.unbind(SOS_EVENT, onAlert);
+      channel.unbind(SOS_STATUS_EVENT, onStatusChange);
       channel.unbind("pusher:subscription_succeeded", onSubscribed);
       pusher.unsubscribe(sosChannelName(cityCorpId));
       setLive(false);
@@ -111,9 +139,11 @@ export function SosAlertFeed({ cityCorpId, role, className }) {
           ),
         );
         notifySuccess(
-          status === "resolved"
-            ? "Alert marked resolved."
-            : "Alert reopened as pending.",
+          {
+            resolved: "Alert marked resolved.",
+            acknowledged: "Acknowledged — the other panel can see that.",
+            pending: "Alert reopened as pending.",
+          }[status] ?? "Alert updated.",
         );
       } else {
         notifyError(result.error);
@@ -123,9 +153,16 @@ export function SosAlertFeed({ cityCorpId, role, className }) {
     }
   }, []);
 
-  const pendingCount = alerts.filter(
-    (alert) => alert.status === "pending",
-  ).length;
+  /* Three explicit counts. The previous `alerts.length - pendingCount`
+     labelled "resolved" became silently wrong the moment a third state
+     existed. */
+  const counts = alerts.reduce(
+    (tally, alert) => {
+      tally[alert.status] = (tally[alert.status] ?? 0) + 1;
+      return tally;
+    },
+    { pending: 0, acknowledged: 0, resolved: 0 },
+  );
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
@@ -145,7 +182,8 @@ export function SosAlertFeed({ cityCorpId, role, className }) {
 
         {!loading && alerts.length > 0 ? (
           <p className="text-xs text-ink-muted" aria-live="polite">
-            {pendingCount} pending · {alerts.length - pendingCount} resolved
+            {counts.pending} pending · {counts.acknowledged} acknowledged ·{" "}
+            {counts.resolved} resolved
           </p>
         ) : null}
       </div>
@@ -195,12 +233,14 @@ export function SosAlertFeed({ cityCorpId, role, className }) {
 function SosAlertRow({ alert, canUpdate, pending, onChangeStatus }) {
   const meta = getSosStatusMeta(alert.status);
   const isPending = alert.status === "pending";
+  const isSettled = alert.status === "resolved";
 
   return (
     <Card
       className={cn(
         "flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4",
-        isPending ? "border-danger/40 bg-danger-soft/40" : "opacity-90",
+        isPending && "border-danger/40 bg-danger-soft/40",
+        isSettled && "opacity-90",
       )}
     >
       <span
@@ -235,16 +275,75 @@ function SosAlertRow({ alert, canUpdate, pending, onChangeStatus }) {
           </a>
         </p>
 
+        {/* Who to call. Falls back to 999 when a unit has no verified number —
+            better a real national line than an unverified one. */}
+        {alert.nearestThana || alert.nearestFireUnit ? (
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
+            {alert.nearestThana ? (
+              <span className="flex items-center gap-1">
+                <IconPolice className="size-3.5 shrink-0" />
+                {alert.nearestThana.name}
+                <a
+                  href={`tel:${alert.nearestThana.contactPhone ?? "999"}`}
+                  className="rounded-sm font-medium text-brand-primary underline underline-offset-2 hover:text-brand-primary-dark"
+                >
+                  {alert.nearestThana.contactPhone ?? "999"}
+                </a>
+              </span>
+            ) : null}
+            {alert.nearestFireUnit ? (
+              <span className="flex items-center gap-1">
+                <IconFlame className="size-3.5 shrink-0" />
+                {alert.nearestFireUnit.name}
+                <a
+                  href={`tel:${alert.nearestFireUnit.contactPhone ?? "999"}`}
+                  className="rounded-sm font-medium text-brand-primary underline underline-offset-2 hover:text-brand-primary-dark"
+                >
+                  {alert.nearestFireUnit.contactPhone ?? "999"}
+                </a>
+              </span>
+            ) : null}
+          </p>
+        ) : null}
+
         {canUpdate ? (
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            {isPending ? (
-              <Button
-                size="sm"
-                loading={pending}
-                onClick={() => onChangeStatus(alert.id, "resolved")}
-              >
-                Mark resolved
-              </Button>
+            {alert.status === "pending" ? (
+              <>
+                <Button
+                  size="sm"
+                  loading={pending}
+                  onClick={() => onChangeStatus(alert.id, "acknowledged")}
+                >
+                  Acknowledge
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={pending}
+                  onClick={() => onChangeStatus(alert.id, "resolved")}
+                >
+                  Mark resolved
+                </Button>
+              </>
+            ) : alert.status === "acknowledged" ? (
+              <>
+                <Button
+                  size="sm"
+                  loading={pending}
+                  onClick={() => onChangeStatus(alert.id, "resolved")}
+                >
+                  Mark resolved
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={pending}
+                  onClick={() => onChangeStatus(alert.id, "pending")}
+                >
+                  Back to pending
+                </Button>
+              </>
             ) : (
               <Button
                 variant="secondary"

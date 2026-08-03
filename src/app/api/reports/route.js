@@ -1,6 +1,12 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { cityCorporations, reportVotes, reports, users } from "@/db/schema";
+import {
+  cityCorporations,
+  reportVotes,
+  reports,
+  responseUnits,
+  users,
+} from "@/db/schema";
 import { getSession } from "@/lib/session";
 import { REPORT_STATUSES, REPORT_TYPES } from "@/lib/report-meta";
 
@@ -9,7 +15,7 @@ import { REPORT_STATUSES, REPORT_TYPES } from "@/lib/report-meta";
  * 01-architecture.md. Writes never come through here; those are Server Actions.
  *
  * Query params:
- *   scope=all|mine|city   (default all)
+ *   scope=all|mine|city|unit   (default all)
  *   cityCorpId=<uuid>     (required when scope=city)
  *   status, type          (optional filters)
  *   page, pageSize        (pagination)
@@ -19,6 +25,7 @@ import { REPORT_STATUSES, REPORT_TYPES } from "@/lib/report-meta";
  *   mine  — the caller's own reports
  *   city  — reports for one City Corporation; management/city_corp only, and
  *           only their own jurisdiction
+ *   unit  — work dispatched to the caller's own response unit, and nothing else
  */
 const MAX_PAGE_SIZE = 100;
 
@@ -62,6 +69,12 @@ export async function GET(request) {
       return jsonError("That belongs to a different City Corporation.", 403);
     }
     filters.push(eq(reports.cityCorporationId, cityCorpId));
+  } else if (scope === "unit") {
+    if (!session) return jsonError("Sign in to see your assigned work.", 401);
+    if (session.role !== "response_unit" || !session.responseUnitId) {
+      return jsonError("You don't have assigned work.", 403);
+    }
+    filters.push(eq(reports.assignedUnitId, session.responseUnitId));
   } else if (scope !== "all") {
     return jsonError("Unknown scope.", 400);
   }
@@ -98,6 +111,14 @@ export async function GET(request) {
         reporterId: users.id,
         reporterName: users.name,
         votes: sql`coalesce(${votesSubquery.total}, 0)`.mapWith(Number),
+        /* Internal routing — only projected for scope=city, see below. */
+        assignedUnitId: reports.assignedUnitId,
+        dispatchStatus: reports.dispatchStatus,
+        dispatchNote: reports.dispatchNote,
+        dispatchedAt: reports.dispatchedAt,
+        assignedUnitName: responseUnits.name,
+        assignedUnitType: responseUnits.type,
+        assignedUnitPhone: responseUnits.contactPhone,
       })
       .from(reports)
       .innerJoin(users, eq(reports.userId, users.id))
@@ -105,6 +126,7 @@ export async function GET(request) {
         cityCorporations,
         eq(reports.cityCorporationId, cityCorporations.id),
       )
+      .leftJoin(responseUnits, eq(reports.assignedUnitId, responseUnits.id))
       .leftJoin(votesSubquery, eq(votesSubquery.reportId, reports.id))
       .where(where)
       .orderBy(desc(reports.createdAt))
@@ -116,9 +138,11 @@ export async function GET(request) {
       .from(reports)
       .where(where);
 
-    /* Reporter identity is only for the authorities working the queue; the
-       public map and the citizen's own list don't need it. */
-    const includeReporter = scope === "city";
+    /* Reporter identity and dispatch routing are only for the authorities
+       working the queue. The public map and the citizen's own list don't need
+       either, and internal routing is not the citizen's business. */
+    const includeAuthorityFields = scope === "city" || scope === "unit";
+    const includeReporter = includeAuthorityFields;
 
     const data = rows.map((row) => ({
       id: row.id,
@@ -137,6 +161,18 @@ export async function GET(request) {
       reporter: includeReporter
         ? { id: row.reporterId, name: row.reporterName }
         : null,
+      dispatchStatus: includeAuthorityFields ? row.dispatchStatus : null,
+      dispatchNote: includeAuthorityFields ? row.dispatchNote : null,
+      dispatchedAt: includeAuthorityFields ? row.dispatchedAt : null,
+      assignedUnit:
+        includeAuthorityFields && row.assignedUnitId
+          ? {
+              id: row.assignedUnitId,
+              name: row.assignedUnitName,
+              type: row.assignedUnitType,
+              contactPhone: row.assignedUnitPhone,
+            }
+          : null,
     }));
 
     return Response.json({

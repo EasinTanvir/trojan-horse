@@ -125,6 +125,7 @@ export async function login(values) {
       userId: account.id,
       role: account.role,
       cityCorporationId: account.cityCorporationId,
+      responseUnitId: account.responseUnitId,
     });
 
     return {
@@ -134,6 +135,7 @@ export async function login(values) {
         redirectTo: homePathForSession({
           role: account.role,
           cityCorporationId: account.cityCorporationId,
+          responseUnitId: account.responseUnitId,
         }),
         role: account.role,
       },

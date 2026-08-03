@@ -1,15 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { triggerSOS } from "@/actions/sos";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
 import { IconSiren } from "@/components/ui/icons";
-import { useCityCorporations } from "@/hooks/useReports";
 import { cn } from "@/lib/cn";
-import { formatCoords } from "@/lib/report-meta";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { notifyError, notifyInfo, notifySuccess } from "@/lib/toast";
 
 /**
  * SOS trigger: captures real GPS, then calls triggerSOS, which writes the
@@ -19,15 +16,18 @@ import { notifyError, notifySuccess } from "@/lib/toast";
  * Deliberately two-step — a single mis-tap on a phone shouldn't page an
  * emergency desk. The confirm dialog is the safeguard, not decoration.
  *
- * The jurisdiction is chosen here rather than derived from coordinates:
- * 02-database-schema.md left that decision to Phase 2, and we have no
- * jurisdiction polygons, so guessing could route an emergency to the wrong desk.
+ * The jurisdiction is DERIVED server-side from the coordinates. It used to be a
+ * dropdown here; asking someone in trouble to pick their City Corporation from
+ * a list was the wrong design, and the browser shouldn't be the authority on it
+ * anyway. triggerSOS decides, and the toast reports where it went.
  */
+/* Matches the server's dedupe window; the server is the real guard, this just
+   avoids opening a pointless dialog. */
+const RESEND_COOLDOWN_MS = 60 * 1000;
 export function SosButton({ className, size = "sm" }) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [cityCorporationId, setCityCorporationId] = useState("");
-  const { cityCorporations, loading } = useCityCorporations();
+  const lastSentAtRef = useRef(0);
 
   function getPosition() {
     return new Promise((resolve, reject) => {
@@ -50,26 +50,36 @@ export function SosButton({ className, size = "sm" }) {
     });
   }
 
-  async function confirmSos() {
-    if (!cityCorporationId) {
-      notifyError("Choose which City Corporation should receive this.");
+  function openDialog() {
+    if (Date.now() - lastSentAtRef.current < RESEND_COOLDOWN_MS) {
+      notifyInfo("An SOS was already sent a moment ago — help is on the way.");
       return;
     }
+    setOpen(true);
+  }
 
+  async function confirmSos() {
     setSending(true);
     try {
       const coords = await getPosition();
       const result = await triggerSOS({
-        cityCorporationId,
         lat: coords.latitude,
         lng: coords.longitude,
       });
 
       if (result.success) {
         setOpen(false);
-        notifySuccess(
-          `SOS sent from ${formatCoords(result.data.lat, result.data.lng)}.`,
-        );
+        lastSentAtRef.current = Date.now();
+
+        if (result.data.duplicate) {
+          notifyInfo("An SOS is already open for you — help is on the way.");
+        } else {
+          const thana = result.data.nearestThanaName;
+          notifySuccess(
+            `SOS sent to ${result.data.cityCorporationName}.` +
+              (thana ? ` Nearest station: ${thana}.` : ""),
+          );
+        }
       } else {
         notifyError(result.error);
       }
@@ -84,7 +94,7 @@ export function SosButton({ className, size = "sm" }) {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openDialog}
         className={cn(
           "focus-ring-danger inline-flex items-center gap-1.5 rounded-md bg-danger font-display font-semibold tracking-wide text-white transition-colors hover:bg-danger-dark",
           size === "lg" ? "h-12 px-6 text-base" : "h-9 px-3 text-sm",
@@ -117,26 +127,11 @@ export function SosButton({ className, size = "sm" }) {
           </>
         }
       >
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-ink-muted">
-            Only use this if you are in immediate danger. For a hazard that is
-            not an emergency, submit a normal report instead.
-          </p>
-
-          <Select
-            label="Send to"
-            required
-            placeholder={loading ? "Loading…" : "Select a City Corporation"}
-            disabled={loading || sending}
-            value={cityCorporationId}
-            onChange={(event) => setCityCorporationId(event.target.value)}
-            options={cityCorporations.map((corp) => ({
-              value: corp.id,
-              label: corp.name,
-            }))}
-            hint="Whichever jurisdiction you're currently in."
-          />
-        </div>
+        <p className="text-sm text-ink-muted">
+          Only use this if you are in immediate danger. Your location decides
+          which City Corporation and which police station is alerted. For a
+          hazard that is not an emergency, submit a normal report instead.
+        </p>
       </Modal>
     </>
   );

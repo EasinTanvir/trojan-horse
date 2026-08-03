@@ -11,3 +11,10 @@ export function sosChannelName(cityCorporationId) {
 }
 
 export const SOS_EVENT = "sos-triggered";
+
+/**
+ * Status changes ride the SAME channel, so jurisdiction isolation is unchanged
+ * and no new subscription is needed. Without this, one authority resolving an
+ * alert leaves the other panel showing it as still pending.
+ */
+export const SOS_STATUS_EVENT = "sos-status-changed";

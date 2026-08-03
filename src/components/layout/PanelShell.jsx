@@ -17,6 +17,7 @@ import { PanelNav } from "./PanelNav";
 export function PanelShell({
   role,
   cityCorpId,
+  unitId,
   orgName,
   userName,
   headerActions,
@@ -42,7 +43,7 @@ export function PanelShell({
         <div className="flex flex-1">
           <aside className="hidden w-56 shrink-0 border-r border-border-subtle bg-surface lg:block">
             <div className="sticky top-14">
-              <PanelNav role={role} cityCorpId={cityCorpId} />
+              <PanelNav role={role} cityCorpId={cityCorpId} unitId={unitId} />
             </div>
           </aside>
 
@@ -79,6 +80,7 @@ export function PanelShell({
               <PanelNav
                 role={role}
                 cityCorpId={cityCorpId}
+                unitId={unitId}
                 onNavigate={() => setNavOpen(false)}
               />
             </div>

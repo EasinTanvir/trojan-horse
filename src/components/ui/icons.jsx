@@ -85,6 +85,73 @@ export function IconCrime(props) {
   );
 }
 
+/* --- Response units ------------------------------------------------------
+   One glyph per unit type. Deliberately NOT reusing IconShieldCheck for the
+   Thana: the shield is the `verified` signature mark and 05-ui-guidelines.md
+   reserves it for that one meaning. */
+
+/** `thana` — police station. */
+export function IconPolice(props) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 3.2 13.9 7l4.1.6-3 2.9.7 4.1-3.7-2-3.7 2 .7-4.1-3-2.9L10.1 7 12 3.2Z" />
+      <path d="M6 15.5V19a1 1 0 0 0 .55.9l5 2.4a1 1 0 0 0 .9 0l5-2.4A1 1 0 0 0 18 19v-3.5" />
+    </BaseIcon>
+  );
+}
+
+/** `fire_service` */
+export function IconFlame(props) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 2.7s5.2 3.9 5.2 9.1a5.2 5.2 0 0 1-10.4 0c0-2 1-3.6 1.9-4.6.3 1 1 1.9 1.9 2.2 0-2.6.6-5 1.4-6.7Z" />
+      <path d="M12 20.5a2.6 2.6 0 0 0 2.6-2.6c0-1.6-1.6-2.9-2.6-4.2-1 1.3-2.6 2.6-2.6 4.2A2.6 2.6 0 0 0 12 20.5Z" />
+    </BaseIcon>
+  );
+}
+
+/** `road_maintenance` */
+export function IconRoad(props) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M6.5 3 4 21M17.5 3 20 21" />
+      <path d="M12 4v3M12 10.5v3M12 17v3" />
+    </BaseIcon>
+  );
+}
+
+/** `waste_management` — garbage and dust. */
+export function IconTrash(props) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 7h16" />
+      <path d="M9.5 7V5.2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V7" />
+      <path d="M6.5 7l.8 12.1a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9L17.5 7" />
+      <path d="M10.5 11v5M13.5 11v5" />
+    </BaseIcon>
+  );
+}
+
+/** `drainage` — sewers and waterlogging. */
+export function IconDroplet(props) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 3.2c3 3.6 5.4 6.5 5.4 9.3a5.4 5.4 0 0 1-10.8 0c0-2.8 2.4-5.7 5.4-9.3Z" />
+      <path d="M9.6 13.6a2.6 2.6 0 0 0 2.4 2.6" />
+    </BaseIcon>
+  );
+}
+
+/** `street_lighting` */
+export function IconLightbulb(props) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M9.2 16.5a6 6 0 1 1 5.6 0" />
+      <path d="M9.5 18.5h5M10.5 21h3" />
+    </BaseIcon>
+  );
+}
+
 /* --- Interface ----------------------------------------------------------- */
 
 export function IconX(props) {
@@ -128,6 +195,16 @@ export function IconMapPin(props) {
     <BaseIcon {...props}>
       <path d="M19 10c0 5.2-7 11-7 11s-7-5.8-7-11a7 7 0 1 1 14 0Z" />
       <circle cx="12" cy="10" r="2.5" />
+    </BaseIcon>
+  );
+}
+
+/** Dispatch — handing a report to a unit. */
+export function IconSend(props) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M20.5 3.5 10.5 13.5" />
+      <path d="M20.5 3.5 14.2 20.5l-3.7-7-7-3.7 17-6.3Z" />
     </BaseIcon>
   );
 }

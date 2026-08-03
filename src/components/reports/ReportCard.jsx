@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { formatCoords, formatRelative, getTypeMeta } from "@/lib/report-meta";
 import { StatusBadge } from "./StatusBadge";
 import { StatusUpdateForm } from "./StatusUpdateForm";
+import { DispatchControl } from "./DispatchControl";
 
 /**
  * One report, rendered for every panel. Which controls appear is driven by
@@ -27,12 +28,18 @@ export function ReportCard({
   compact = false,
   onVote,
   onStatusChange,
+  units,
+  onDispatch,
+  onWorkDone,
+  workPending = false,
   votePending = false,
   className,
 }) {
   const typeMeta = getTypeMeta(report.type);
   const TypeIcon = typeMeta.icon;
-  const isAuthority = role === "management" || role === "city_corp";
+  const isUnit = role === "response_unit";
+  const isAuthority =
+    role === "management" || role === "city_corp" || isUnit;
 
   return (
     <Card className={cn("overflow-hidden", className)}>
@@ -141,11 +148,28 @@ export function ReportCard({
 
       {isAuthority ? (
         <CardFooter className="block">
-          <StatusUpdateForm
-            role={role}
-            report={report}
-            onSubmit={onStatusChange}
-          />
+          <div className="flex flex-col gap-3">
+            {/* Who has it, then what state it's in — routing above outcome. */}
+            <DispatchControl
+              role={role}
+              report={report}
+              units={units}
+              onDispatch={onDispatch}
+              onWorkDone={onWorkDone}
+              workPending={workPending}
+            />
+            {/* A unit gets no status control at all — StatusUpdateForm returns
+                null for its role, so skip the divider too. */}
+            {isUnit ? null : (
+              <div className="border-t border-border-subtle pt-3">
+                <StatusUpdateForm
+                  role={role}
+                  report={report}
+                  onSubmit={onStatusChange}
+                />
+              </div>
+            )}
+          </div>
         </CardFooter>
       ) : null}
     </Card>
